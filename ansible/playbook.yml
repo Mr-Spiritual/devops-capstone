@@ -1,0 +1,70 @@
+- hosts: dockerhosts
+  become: true
+  vars:
+    app_dir: /home/{{ ansible_user }}/app
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Install required packages
+      apt:
+        name:
+          - docker.io
+          - git
+          - python3-pip
+        state: present
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add user to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Install docker compose v2 plugin
+      shell: |
+        mkdir -p /usr/local/lib/docker/cli-plugins || true
+        curl -SL "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-linux-x86_64" -o /usr/local/lib/docker/cli-plugins/docker-compose
+        chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+      args:
+        creates: /usr/local/lib/docker/cli-plugins/docker-compose
+
+    - name: Create app directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        mode: '0755'
+
+    - name: Copy docker-compose.yml to host
+      copy:
+        src: ../docker-compose.yml
+        dest: "{{ app_dir }}/docker-compose.yml"
+        owner: "{{ ansible_user }}"
+        mode: '0644'
+
+    - name: Copy app (if building on host)
+      synchronize:
+        src: ../app/
+        dest: "{{ app_dir }}/app/"
+        rsync_opts:
+          - "--exclude=node_modules"
+      when: deploy_local_build | default(false)
+
+    - name: Pull images and bring up stack (as user)
+      become_user: "{{ ansible_user }}"
+      shell: |
+        cd "{{ app_dir }}"
+        docker compose pull || true
+        docker compose up -d --remove-orphans
+      args:
+        executable: /bin/bash
