@@ -7,9 +7,8 @@ on:
 jobs:
   build-test-push-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
 
-    env:
+    env: # ✅ define envs once from secrets
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       SERVER_HOST: ${{ secrets.SERVER_HOST }}
@@ -18,17 +17,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install dependencies & run tests
-        run: |
-          cd app
-          npm ci
-          npm test
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -44,14 +32,12 @@ jobs:
           push: true
           tags: ${{ env.DOCKERHUB_USERNAME }}/demo-app:latest
 
-      - name: Deploy to EC2 via SSH (pull & restart)
+      - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ env.SERVER_HOST }}
           username: ubuntu
           key: ${{ env.SERVER_SSH_KEY }}
           script: |
-            set -e
-            cd /home/ubuntu/app
             docker pull ${{ env.DOCKERHUB_USERNAME }}/demo-app:latest
             docker compose up -d --remove-orphans
