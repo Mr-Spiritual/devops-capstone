@@ -46,6 +46,9 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             set -e
-            cd /home/${{ secrets.SERVER_USER }}/app
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/demo-app:latest
+            cd /home/${SERVER_USER}/app
+            docker pull ${DOCKERHUB_USERNAME}/demo-app:latest
             docker compose up -d --remove-orphans
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
