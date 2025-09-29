@@ -36,7 +36,7 @@ jobs:
           context: ./app
           file: ./app/Dockerfile
           push: true
-          tags: "${{ secrets.DOCKERHUB_USERNAME }}"/demo-app:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/demo-app:latest
 
       - name: Deploy to EC2 via SSH (pull & restart)
         uses: appleboy/ssh-action@v0.1.7
