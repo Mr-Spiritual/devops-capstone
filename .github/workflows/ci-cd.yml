@@ -39,5 +39,8 @@ jobs:
           username: ubuntu
           key: ${{ env.SERVER_SSH_KEY }}
           script: |
+            set -e
+            cd /home/ubuntu/app
             docker pull ${{ env.DOCKERHUB_USERNAME }}/demo-app:latest
-            docker compose up -d --remove-orphans
+            docker compose -f docker-compose.yml up -d --remove-orphans
+
